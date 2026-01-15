@@ -1,195 +1,121 @@
 "use client";
 
-import React, { useRef } from "react";
-import {
-  motion,
-  useAnimationFrame,
-  useMotionTemplate,
-  useMotionValue,
-  useTransform,
-} from "framer-motion";
 import { cn } from "@/utils/cn";
+import React, { useEffect, useState } from "react";
 
-/* =======================
-   BUTTON COMPONENT
-======================= */
-
-export function Button({
-  borderRadius = "1.75rem",
-  children,
-  as: Component = "button",
-  containerClassName,
-  borderClassName,
-  duration,
+export const InfiniteMovingCards = ({
+  items,
+  direction = "left",
+  speed = "fast",
+  pauseOnHover = true,
   className,
-  ...otherProps
 }: {
-  borderRadius?: string;
-  children: React.ReactNode;
-  as?: any;
-  containerClassName?: string;
-  borderClassName?: string;
-  duration?: number;
-  className?: string;
-  [key: string]: any;
-}) {
-  return (
-    <Component
-      className={cn(
-        "bg-transparent relative text-xl h-16 w-40 p-[1px] overflow-hidden",
-        containerClassName
-      )}
-      style={{ borderRadius }}
-      {...otherProps}
-    >
-      <div
-        className="absolute inset-0"
-        style={{ borderRadius: `calc(${borderRadius} * 0.96)` }}
-      >
-        <MovingBorder duration={duration} rx="30%" ry="30%">
-          <div
-            className={cn(
-              "h-20 w-20 opacity-[0.8] bg-[radial-gradient(var(--sky-500)_40%,transparent_60%)]",
-              borderClassName
-            )}
-          />
-        </MovingBorder>
-      </div>
-
-      <div
-        className={cn(
-          "relative bg-slate-900/[0.8] border border-slate-800 backdrop-blur-xl text-white flex items-center justify-center w-full h-full text-sm antialiased",
-          className
-        )}
-        style={{ borderRadius: `calc(${borderRadius} * 0.96)` }}
-      >
-        {children}
-      </div>
-    </Component>
-  );
-}
-
-/* =======================
-   MOVING BORDER
-======================= */
-
-export function MovingBorder({
-  children,
-  duration = 2000,
-  rx,
-  ry,
-  ...otherProps
-}: {
-  children: React.ReactNode;
-  duration?: number;
-  rx?: string;
-  ry?: string;
-  [key: string]: any;
-}) {
-  const pathRef = useRef<SVGRectElement | null>(null);
-  const progress = useMotionValue(0);
-
-  useAnimationFrame((time) => {
-    const length = pathRef.current?.getTotalLength();
-    if (!length) return;
-
-    const pxPerMs = length / duration;
-    progress.set((time * pxPerMs) % length);
-  });
-
-  const x = useTransform(progress, (val) =>
-    pathRef.current?.getPointAtLength(val)?.x ?? 0
-  );
-  const y = useTransform(progress, (val) =>
-    pathRef.current?.getPointAtLength(val)?.y ?? 0
-  );
-
-  const transform = useMotionTemplate`
-    translateX(${x}px)
-    translateY(${y}px)
-    translateX(-50%)
-    translateY(-50%)
-  `;
-
-  return (
-    <>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        preserveAspectRatio="none"
-        className="absolute h-full w-full"
-        width="100%"
-        height="100%"
-        {...otherProps}
-      >
-        <rect
-          ref={pathRef}
-          fill="none"
-          width="100%"
-          height="100%"
-          rx={rx}
-          ry={ry}
-        />
-      </svg>
-
-      <motion.div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          transform,
-        }}
-      >
-        {children}
-      </motion.div>
-    </>
-  );
-}
-
-
-interface InfiniteMovingCardsProps {
   items: {
     quote: string;
     name: string;
     title: string;
   }[];
   direction?: "left" | "right";
-  speed?: "slow" | "normal" | "fast";
+  speed?: "fast" | "normal" | "slow";
+  pauseOnHover?: boolean;
   className?: string;
-}
+}) => {
+  const containerRef = React.useRef<HTMLDivElement>(null);
+  const scrollerRef = React.useRef<HTMLUListElement>(null);
 
-export function InfiniteMovingCards({
-  items,
-  direction = "left",
-  speed = "normal",
-  className,
-}: InfiniteMovingCardsProps) {
-  const duration =
-    speed === "slow" ? 40 : speed === "fast" ? 15 : 25;
+  useEffect(() => {
+    addAnimation();
+  }, []);
+  const [start, setStart] = useState(false);
+  function addAnimation() {
+    if (containerRef.current && scrollerRef.current) {
+      const scrollerContent = Array.from(scrollerRef.current.children);
 
+      scrollerContent.forEach((item) => {
+        const duplicatedItem = item.cloneNode(true);
+        if (scrollerRef.current) {
+          scrollerRef.current.appendChild(duplicatedItem);
+        }
+      });
+
+      getDirection();
+      getSpeed();
+      setStart(true);
+    }
+  }
+  const getDirection = () => {
+    if (containerRef.current) {
+      if (direction === "left") {
+        containerRef.current.style.setProperty(
+          "--animation-direction",
+          "forwards"
+        );
+      } else {
+        containerRef.current.style.setProperty(
+          "--animation-direction",
+          "reverse"
+        );
+      }
+    }
+  };
+  const getSpeed = () => {
+    if (containerRef.current) {
+      if (speed === "fast") {
+        containerRef.current.style.setProperty("--animation-duration", "20s");
+      } else if (speed === "normal") {
+        containerRef.current.style.setProperty("--animation-duration", "40s");
+      } else {
+        containerRef.current.style.setProperty("--animation-duration", "80s");
+      }
+    }
+  };
   return (
-    <div className={cn("relative overflow-hidden", className)}>
-      <motion.div
-        className="flex gap-6 w-max"
-        animate={{
-          x: direction === "left" ? ["0%", "-50%"] : ["-50%", "0%"],
-        }}
-        transition={{
-          duration,
-          ease: "linear",
-          repeat: Infinity,
-        }}
+    <div
+      ref={containerRef}
+      className={cn(
+        "scroller relative z-20  max-w-7xl overflow-hidden  [mask-image:linear-gradient(to_right,transparent,white_20%,white_80%,transparent)]",
+        className
+      )}
+    >
+      <ul
+        ref={scrollerRef}
+        className={cn(
+          " flex min-w-full shrink-0 gap-4 py-4 w-max flex-nowrap",
+          start && "animate-scroll ",
+          pauseOnHover && "hover:[animation-play-state:paused]"
+        )}
       >
-        {[...items, ...items].map((item, idx) => (
-          <div
-            key={idx}
-            className="min-w-[300px] bg-slate-900 border border-slate-800 rounded-xl p-6 text-white"
+        {items.map((item, idx) => (
+          <li
+            className="w-[350px] max-w-full relative rounded-2xl border border-b-0 flex-shrink-0 border-slate-700 px-8 py-6 md:w-[450px]"
+            style={{
+              background:
+                "linear-gradient(180deg, var(--slate-800), var(--slate-900)",
+            }}
+            key={item.name}
           >
-            <p className="text-sm italic">"{item.quote}"</p>
-            <p className="mt-4 font-semibold">{item.name}</p>
-            <p className="text-xs text-slate-400">{item.title}</p>
-          </div>
+            <blockquote>
+              <div
+                aria-hidden="true"
+                className="user-select-none -z-1 pointer-events-none absolute -left-0.5 -top-0.5 h-[calc(100%_+_4px)] w-[calc(100%_+_4px)]"
+              ></div>
+              <span className=" relative z-20 text-sm leading-[1.6] text-gray-100 font-normal">
+                {item.quote}
+              </span>
+              <div className="relative z-20 mt-6 flex flex-row items-center">
+                <span className="flex flex-col gap-1">
+                  <span className=" text-sm leading-[1.6] text-gray-400 font-normal">
+                    {item.name}
+                  </span>
+                  <span className=" text-sm leading-[1.6] text-gray-400 font-normal">
+                    {item.title}
+                  </span>
+                </span>
+              </div>
+            </blockquote>
+          </li>
         ))}
-      </motion.div>
+      </ul>
     </div>
   );
-}
+};
