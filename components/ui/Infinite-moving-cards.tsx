@@ -145,9 +145,6 @@ export function MovingBorder({
   );
 }
 
-/* =======================
-   INFINITE MOVING CARDS
-======================= */
 
 interface InfiniteMovingCardsProps {
   items: {
