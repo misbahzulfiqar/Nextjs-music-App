@@ -84,8 +84,8 @@ export const MovingBorder = ({
   ry?: string;
   [key: string]: any;
 }) => {
-  // Type-safe ref for SVGRectElement
-  const pathRef = useRef<SVGRectElement | null>(null);
+  // Fixed: Added null as initial value
+  const pathRef = useRef<SVGRectElement>(null);
   const progress = useMotionValue(0);
 
   // Animate along the path
@@ -97,8 +97,15 @@ export const MovingBorder = ({
     }
   });
 
-  const x = useTransform(progress, (val) => pathRef.current?.getPointAtLength(val)?.x ?? 0);
-  const y = useTransform(progress, (val) => pathRef.current?.getPointAtLength(val)?.y ?? 0);
+  const x = useTransform(progress, (val) => {
+    const point = pathRef.current?.getPointAtLength(val);
+    return point?.x ?? 0;
+  });
+
+  const y = useTransform(progress, (val) => {
+    const point = pathRef.current?.getPointAtLength(val);
+    return point?.y ?? 0;
+  });
 
   const transform = useMotionTemplate`translateX(${x}px) translateY(${y}px) translateX(-50%) translateY(-50%)`;
 
@@ -112,7 +119,14 @@ export const MovingBorder = ({
         height="100%"
         {...otherProps}
       >
-        <rect ref={pathRef} fill="none" width="100%" height="100%" rx={rx} ry={ry} />
+        <rect
+          ref={pathRef}
+          fill="none"
+          width="100%"
+          height="100%"
+          rx={rx}
+          ry={ry}
+        />
       </svg>
 
       <motion.div
@@ -120,6 +134,7 @@ export const MovingBorder = ({
           position: "absolute",
           top: 0,
           left: 0,
+          display: "inline-block",
           transform,
         }}
       >
